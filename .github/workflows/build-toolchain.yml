@@ -13,3 +13,9 @@ jobs:
       run: bash ci.sh deps
     - name: Build Toolchain
       run: bash build-tc.sh
+    - name: Packaging xxx.tar.xz
+      run: tar -Jcvf SuperCat-Clang-$(clang -v > /dev/null 2>&1 | grep version | awk '{print $3}')-$( date "+%Y%m%d%H%M").tar.xz install
+    - name: Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: SuperCat-Clang-*.tar.xz
