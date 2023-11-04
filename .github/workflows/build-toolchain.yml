@@ -1,0 +1,15 @@
+name: Build SuperCat Toolchain
+on:
+    push:
+      branches:
+        - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install dependencies
+      run: bash ci.sh deps
+    - name: Build Toolchain
+      run: bash build-tc.sh
