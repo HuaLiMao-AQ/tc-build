@@ -27,6 +27,7 @@ class LLVMBuilder(Builder):
 
         self.bolt = False
         self.bolt_builder = None
+        self.build_targets = ['all']
         self.ccache = False
         self.check_targets = []
         # Removes system dependency on terminfo to keep the dynamic library
@@ -133,7 +134,7 @@ class LLVMBuilder(Builder):
         if mode == 'instrumentation':
             clang_inst.unlink()
 
-    def build(self, build_target='all'):
+    def build(self):
         if not self.folders.build:
             raise RuntimeError('No build folder set for build()?')
         if not Path(self.folders.build, 'build.ninja').exists():
@@ -142,7 +143,7 @@ class LLVMBuilder(Builder):
             raise RuntimeError('BOLT requested without a builder?')
 
         build_start = time.time()
-        ninja_cmd = ['ninja', '-C', self.folders.build, build_target]
+        ninja_cmd = ['ninja', '-C', self.folders.build, *self.build_targets]
         self.run_cmd(ninja_cmd)
 
         if self.check_targets:
@@ -375,20 +376,25 @@ class LLVMSlimBuilder(LLVMBuilder):
         llvm_build_runtime = self.cmake_defines.get('LLVM_BUILD_RUNTIME', 'ON') == 'ON'
         build_compiler_rt = self.project_is_enabled('compiler-rt') and llvm_build_runtime
 
-        distribution_components = [
-            'clang',
-            'clang-resource-headers',
-            'lld',
-            'llvm-ar',
-            'llvm-nm',
-            'llvm-objcopy',
-            'llvm-objdump',
-            'llvm-ranlib',
-            'llvm-readelf',
-            'llvm-strip',
-        ]
+        llvm_build_tools = self.cmake_defines.get('LLVM_BUILD_TOOLS', 'ON') == 'ON'
+
+        distribution_components = []
+        if llvm_build_tools:
+            distribution_components += [
+                'llvm-ar',
+                'llvm-nm',
+                'llvm-objcopy',
+                'llvm-objdump',
+                'llvm-ranlib',
+                'llvm-readelf',
+                'llvm-strip',
+            ]
         if self.project_is_enabled('bolt'):
             distribution_components.append('bolt')
+        if self.project_is_enabled('clang'):
+            distribution_components += ['clang', 'clang-resource-headers']
+        if self.project_is_enabled('lld'):
+            distribution_components.append('lld')
         if build_compiler_rt:
             distribution_components += ['llvm-profdata', 'profile']
 
