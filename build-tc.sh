@@ -15,12 +15,14 @@ msg "Building LLVM..."
     --assertions \
 	--build-stage1-only \
 	--check-targets clang lld llvm \
-	--ref release/18.x \
-	--projects "clang;lld;polly" \
+	--ref release/17.x \
+	--projects clang lld polly \
     --shallow-clone \
     --show-build-commands \
 	--targets ARM AArch64 X86 \
-	--install-folder "installTmp" 
+	--install-folder "installTmp" \
+	--lto thin \
+	--vendor-string "SuperCat"
 
 # Build binutils
 msg "Building binutils..."
