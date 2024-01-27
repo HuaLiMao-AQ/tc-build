@@ -14,10 +14,10 @@ from tc_build.kernel import KernelBuilder, LinuxSourceManager, LLVMKernelBuilder
 from tc_build.tools import HostTools, StageTools
 
 # This is a known good revision of LLVM for building the kernel
-GOOD_REVISION = 'e280e406c2e34ce29e1e71da7cd3a284ea112ce8'
+GOOD_REVISION = 'a828cda9c80282a77b579f8fc9dc17a310173af4'
 
 # The version of the Linux kernel that the script downloads if necessary
-DEFAULT_KERNEL_FOR_PGO = (6, 5, 0)
+DEFAULT_KERNEL_FOR_PGO = (6, 7, 0)
 
 parser = ArgumentParser(formatter_class=RawTextHelpFormatter)
 clone_options = parser.add_mutually_exclusive_group()
@@ -598,6 +598,14 @@ if args.pgo:
         llvm_builder.show_commands = args.show_build_commands
         llvm_builder.targets = final.targets
         llvm_builder.tools = StageTools(Path(instrumented.folders.build, 'bin'))
+        # clang-tblgen and llvm-tblgen may not be available from the
+        # instrumented folder if the user did not pass '--full-toolchain', as
+        # only the tools included in the distribution will be available. In
+        # that case, use the bootstrap versions, which should not matter much
+        # for profiling sake.
+        if not args.full_toolchain:
+            llvm_builder.tools.clang_tblgen = Path(bootstrap.folders.build, 'bin/clang-tblgen')
+            llvm_builder.tools.llvm_tblgen = Path(bootstrap.folders.build, 'bin/llvm-tblgen')
         pgo_builders.append(llvm_builder)
 
     # If the user specified both a full and slim build of the same type, remove

@@ -115,6 +115,9 @@ class LLVMBuilder(Builder):
             self.bolt_builder.bolt_sampling_output.unlink()
 
         # Now actually optimize clang
+        bolt_readme = Path(self.folders.source, 'bolt/README.md').read_text(encoding='utf-8')
+        use_cache_plus = '-reorder-blocks=cache+' in bolt_readme
+        use_sf_val = '-split-functions=2' in bolt_readme
         clang_opt_cmd = [
             self.tools.llvm_bolt,
             f"--data={bolt_profile}",
@@ -122,10 +125,10 @@ class LLVMBuilder(Builder):
             '--icf=1',
             '-o',
             clang_bolt,
-            '--reorder-blocks=cache+',
+            f"--reorder-blocks={'cache+' if use_cache_plus else 'ext-tsp'}",
             '--reorder-functions=hfsort+',
             '--split-all-cold',
-            '--split-functions=3',
+            f"--split-functions{'=3' if use_sf_val else ''}",
             '--use-gnu-stack',
             clang,
         ]
@@ -143,12 +146,12 @@ class LLVMBuilder(Builder):
             raise RuntimeError('BOLT requested without a builder?')
 
         build_start = time.time()
-        ninja_cmd = ['ninja', '-C', self.folders.build, *self.build_targets]
-        self.run_cmd(ninja_cmd)
+        base_ninja_cmd = ['ninja', '-C', self.folders.build]
+        self.run_cmd([*base_ninja_cmd, *self.build_targets])
 
         if self.check_targets:
             check_targets = [f"check-{target}" for target in self.check_targets]
-            self.run_cmd([*ninja_cmd, *check_targets])
+            self.run_cmd([*base_ninja_cmd, *check_targets])
 
         tc_build.utils.print_info(f"Build duration: {tc_build.utils.get_duration(build_start)}")
 
@@ -160,7 +163,7 @@ class LLVMBuilder(Builder):
                 install_targets = [f"install-{target}" for target in self.install_targets]
             else:
                 install_targets = ['install']
-            self.run_cmd([*ninja_cmd, *install_targets], capture_output=True)
+            self.run_cmd([*base_ninja_cmd, *install_targets], capture_output=True)
             tc_build.utils.create_gitignore(self.folders.install)
 
     def can_use_perf(self):
